@@ -1,10 +1,20 @@
 # ==============================================================================
-# ARCHIVO: ui.R (Versión B - Asistente MiFID II)
+# ARCHIVO: ui.R
+# Objetivo: Mostrar la interfaz del Robo-Advisor al usuario cuando ejecute la
+#           la aplicación con los datos correspondientes
 # ==============================================================================
 
 ui <- page_fillable(
   theme = bs_theme(version = 5, bootswatch = "flatly"),
   title = "Robo-Advisor TFG",
+  div(
+    class = "d-flex align-items-center p-3 mb-3 bg-light rounded shadow-sm",
+    img(src = "logo_ucm.png", height = "70px", class = "me-4"),
+    div(
+      h2("Robo-Advisor Financiero", class = "mb-0 text-primary", style = "font-weight: bold;"),
+      p("Trabajo de Fin de Grado - Universidad Complutense de Madrid", class = "text-muted mb-0", style = "font-size: 1.1rem;")
+    )
+  ),
 
   navset_tab(
     id = "tabs_main", # ID para poder cambiar de pestaña desde el servidor
@@ -54,7 +64,7 @@ ui <- page_fillable(
                       choices = list("Preservar capital / Evitar cualquier pérdida" = 1, "Proteger de la inflación con riesgo bajo" = 4, "Crecimiento moderado equilibrado" = 7, "Maximizar rentabilidad con alta volatilidad" = 10))
         ),
 
-        # BLOQUE D: OBJETIVOS Y ESTRÉS (II - ESCENARIOS)
+        # BLOQUE D: OBJETIVOS Y ESTRÉS (II)
         card(
           card_header("D. Reacción ante Escenarios de Estrés"),
           selectInput("q9", "9. Si invierte 10.000€ y su cartera cae a 8.500€ (-15%) en un mes, ¿qué haría?",
@@ -70,7 +80,7 @@ ui <- page_fillable(
       )
     ),
 
-    # PESTAÑA 2: RESULTADOS (Se activa al pulsar el botón)
+    # PESTAÑA 2: RESULTADOS
     nav_panel(
       title = "2. Mi Cartera Optimizada",
       value = "panel_resultados",

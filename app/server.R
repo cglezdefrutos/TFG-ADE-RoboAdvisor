@@ -1,15 +1,17 @@
 # ==============================================================================
 # ARCHIVO: server.R
-# Objetivo: Procesar inputs, ejecutar el algoritmo de optimización y
-#           devolver los gráficos y métricas a la interfaz.
+# Objetivo: Procesar los inputs del test, ejecutar el algoritmo de optimización
+#           y devolver los gráficos y métricas a la interfaz.
 # ==============================================================================
 
 server <- function(input, output, session) {
 
-  # 1. REACTIVIDAD: Calcular Nivel de Riesgo (1-10) según el Test MiFID II
-  # Se ejecuta cuando el usuario hace clic en el botón "Optimizar Cartera"
+  # 1. LÓGICA DE NEGOCIO Y REACCIÓN A EVENTOS
+
+  # 1.1. Calculamos el nivel de riesgo (1-10) según las respuestas al test.
+  # Este bloque se ejecuta cuando el usuario hace clic en el botón "Optimizar Cartera"
   nivel_riesgo <- eventReactive(input$calc, {
-    # Sumamos los puntos de las 3 preguntas (Mínimo = 3, Máximo = 30)
+    # Sumamos los puntos de las 3 preguntas
     puntos <- sum(as.numeric(input$q1), as.numeric(input$q2), as.numeric(input$q3),
                   as.numeric(input$q4), as.numeric(input$q5), as.numeric(input$q6),
                   as.numeric(input$q7), as.numeric(input$q8), as.numeric(input$q9),
@@ -20,28 +22,28 @@ server <- function(input, output, session) {
     return(nota)
   }) # Se ejecuta automáticamente la primera vez que se abre la app
 
-  # Efecto magia: Observador independiente para cambiar de pestaña
+  # Observador independiente para cambiar de pestaña
   observeEvent(input$calc, {
     nav_select("tabs_main", "panel_resultados")
   })
 
-  # 2. REACTIVIDAD: Ejecutar Motor de Markowitz
+  # 1.2. Ejecutamos el motor de Markowitz
   pesos_cartera <- reactive({
+    # Calculamos la aversión al riesgo
     riesgo <- nivel_riesgo()
-    lambda_taylor <- ((11 - riesgo) * 10) * 0.5
+    lambda <- ((11 - riesgo) * 10) * 0.5
 
-    # Añadimos los objetivos dinámicos al "portafolio_base" (cargado en global.R)
+    # Añadimos los objetivos al "portafolio_base" (cargado en global.R)
     port_obj <- add.objective(portfolio = portafolio_base, type = "return", name = "mean")
-    port_obj <- add.objective(portfolio = port_obj, type = "risk", name = "var", risk_aversion = lambda_taylor)
+    port_obj <- add.objective(portfolio = port_obj, type = "risk", name = "var", risk_aversion = lambda)
 
-    # Ejecutamos el solver matemático
+    # Ejecutamos el solver matemático y devolvemos los pesos
     opt <- optimize.portfolio(R = retornos_riesgo, portfolio = port_obj, optimize_method = "ROI")
-
     pesos <- extractWeights(opt)
-    return(round(pesos, 4)) # Devolvemos formato decimal puro para los siguientes cálculos
+    return(round(pesos, 4))
   })
 
-  # 3. REACTIVIDAD: Simulación Histórica (Backtesting)
+  # 1.3. Realizamos la simulación histórica (Backtesting)
   backtest_resultados <- reactive({
     pesos <- pesos_cartera()
 
@@ -59,11 +61,9 @@ server <- function(input, output, session) {
     list(rentabilidad = rent_anual, var = var_95, serie_crecimiento = crecimiento)
   })
 
-  # ============================================================================
-  # 4. RENDERIZADO: Enviar resultados al Frontend (ui.R)
-  # ============================================================================
+  # 2. RENDERIZADO (ENVIAMOS LOS RESULTADOS AL FRONTEND -> ui.R)
 
-  # 4.1 Llenar las Tarjetas (Value Boxes)
+  # 2.1. Completamos las tarjetas superiores
   output$perfil_txt <- renderText({
     riesgo <- nivel_riesgo()
     if(riesgo <= 3) return(paste("Conservador (Riesgo", riesgo, "/ 10)"))
@@ -81,12 +81,10 @@ server <- function(input, output, session) {
     paste0(round(as.numeric(res$var) * 100, 2), " %")
   })
 
-  # 4.2 Gráfico 1: El "Quesito" (Distribución de Activos)
+  # 2.2. Generamos el gráfico del quesito de activos (distribución de pesos) con plotly
   output$plot_quesito <- renderPlotly({
     pesos <- pesos_cartera()
     activos <- names(pesos)
-
-    # Usamos la librería plotly para hacerlo interactivo (HTML)
     plot_ly(labels = ~activos, values = ~pesos, type = 'pie',
             textinfo = 'label+percent', hoverinfo = 'text',
             text = ~paste(activos, ": ", round(pesos*100, 2), "%"),
@@ -94,7 +92,7 @@ server <- function(input, output, session) {
       layout(showlegend = FALSE, margin = list(t=0, b=0, l=0, r=0))
   })
 
-  # 4.3 Gráfico 2: Evolución del Dinero (Backtesting)
+  # 2.3. Generamos el gráfico de evolución del dinero (Backtesting)
   output$plot_evolucion <- renderPlotly({
     crecimiento <- backtest_resultados()$serie_crecimiento
     fechas <- index(crecimiento)

@@ -10,9 +10,11 @@ library(tidyverse)
 library(tidyquant)
 library(gridExtra)
 
-# 2. Carga y separación de datos
+# 2. Cargar los datos limpios del script 01 y separarlos
 ruta_datos <- "data/processed/retornos_etfs.rds"
-if(!file.exists(ruta_datos)) stop("Ejecuta primero 01_etl_yahoo.R")
+if(!file.exists(ruta_datos)) {
+  stop("¡Error! No se encuentra el archivo .rds. Ejecuta primero 01_etl_yahoo.R")
+}
 
 retornos_totales <- readRDS(ruta_datos)
 activos_riesgo <- c("SPY", "VGK", "EEM", "AGG", "GLD")
@@ -20,7 +22,7 @@ retornos_activos <- retornos_totales[, activos_riesgo]
 retornos_rf <- retornos_totales$BIL
 retornos_mercado <- retornos_totales$SPY
 
-# 3. Simulación Histórica (Backtesting) de las 3 carteras
+# 3. Simulación Histórica (backtesting) de las carteras para los 3 perfiles
 pesos_conservador <- c(0.05, 0.05, 0.05, 0.80, 0.05)
 pesos_moderado <- c(0.0555, 0.05, 0.05, 0.7666, 0.0780)
 pesos_agresivo <- c(0.3076, 0.05, 0.05, 0.2397, 0.3527)
@@ -29,7 +31,7 @@ retornos_conservador <- Return.portfolio(R = retornos_activos, weights = pesos_c
 retornos_moderado    <- Return.portfolio(R = retornos_activos, weights = pesos_moderado)
 retornos_agresivo    <- Return.portfolio(R = retornos_activos, weights = pesos_agresivo)
 
-# Unimos las tres carteras en un solo objeto para compararlas
+# Unimos las tres carteras en un solo objeto para poder compararlas
 carteras_simuladas <- merge(retornos_conservador, retornos_moderado, retornos_agresivo)
 colnames(carteras_simuladas) <- c("Conservador", "Moderado", "Agresivo")
 
@@ -45,8 +47,8 @@ sharpe_anual <- numeric(3)
 beta_capm <- numeric(3)
 alfa_jensen <- numeric(3)
 
-# Bucle FOR: Evaluamos las carteras una por una para poder utilizar BIL
-# como Rf con precisión diaria en vez de realizar su media
+# Evaluamos las carteras una por una para poder utilizar BIL como Rf con
+# precisión diaria en vez de realizar su media
 for(i in 1:3) {
   cartera_actual <- carteras_simuladas[, i]
   sharpe_anual[i] <- SharpeRatio.annualized(cartera_actual, Rf = retornos_rf)
@@ -54,7 +56,7 @@ for(i in 1:3) {
   alfa_jensen[i]  <- CAPM.jensenAlpha(Ra = cartera_actual, Rb = retornos_mercado, Rf = retornos_rf)
 }
 
-# Consolidación e impresión de la tabla
+# Consolidamos los datos y los imprimimos en una tabla
 tabla_resultados <- rbind(
   Rentabilidad_Anual_Pct = as.numeric(round(rentabilidad_anual * 100, 2)),
   VaR_95_Diario_Pct      = as.numeric(round(var_95 * 100, 2)),
@@ -62,11 +64,10 @@ tabla_resultados <- rbind(
   Beta_Mercado           = as.numeric(round(beta_capm, 2)),
   Alfa_Jensen_Pct        = as.numeric(round(alfa_jensen * 100, 4))
 )
-
 colnames(tabla_resultados) <- c("Conservador", "Moderado", "Agresivo")
 print(tabla_resultados)
 
-# 5. Dashboard visual (ggplot2)
+# 5. Creamos el dashboard visual
 cat("\nGenerando dashboard...\n")
 
 # Transformación a formato largo y cálculo de Drawdowns
@@ -82,9 +83,8 @@ df_completo <- df_base %>%
   ) %>%
   ungroup()
 
+# Creamos los paneles individuales con ggplot2
 colores_perfil <- c("Agresivo" = "#D55E00", "Moderado" = "#E69F00", "Conservador" = "#0072B2")
-
-# Paneles individuales
 plot_1 <- ggplot(df_completo, aes(x = Fecha, y = Crecimiento, color = Perfil)) +
   geom_line(size = 0.55) +
   scale_color_manual(values = colores_perfil) +
@@ -110,11 +110,9 @@ plot_3 <- ggplot(df_completo, aes(x = Fecha, y = Drawdown, fill = Perfil)) +
   theme_minimal() +
   theme(legend.position = "none", strip.background = element_blank())
 
-# Combinación y guardado
+# Combinamos los paneles en un solo dashboard y lo guardamos
 dashboard_definitivo <- grid.arrange(plot_1, plot_2, plot_3, heights = c(1, 1.2, 1.2))
-
 ruta_guardado <- "results/dashboard_backtesting_mifid2.png"
 if(!dir.exists("results")) dir.create("results")
 ggsave(filename = ruta_guardado, plot = dashboard_definitivo, width = 12, height = 12, dpi = 300, bg = "white")
-
 cat("¡Dashboard generado y guardado exitosamente en la carpeta 'results'!\n")
