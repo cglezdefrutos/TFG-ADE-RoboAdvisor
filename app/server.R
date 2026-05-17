@@ -20,7 +20,7 @@ server <- function(input, output, session) {
     # Normalizamos: de [10-100] a [1-10]
     nota <- round((puntos - 10) / (100 - 10) * 9 + 1)
     return(nota)
-  }) # Se ejecuta automáticamente la primera vez que se abre la app
+  })
 
   # Observador independiente para cambiar de pestaña
   observeEvent(input$calc, {

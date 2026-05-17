@@ -1,17 +1,17 @@
 # ==============================================================================
 # ARCHIVO: global.R
-# Objetivo: Cargar dependencias, datos estáticos y reglas matemáticas base.
-# Este script se ejecuta una única vez al iniciar el servidor de la aplicación.
+# Objetivo: Cargar dependencias, datos estáticos y portfolio base. Este script
+#           se ejecuta una única vez al iniciar el servidor de la aplicación.
 # ==============================================================================
 
 # 1. Cargamos las librerías del backend y frontend
-library(shiny)                # Framework web nativo de R
-library(bslib)                # Temas de diseño modernos (Bootstrap 5)
-library(plotly)               # Gráficos interactivos HTML (Hover, zoom)
-library(PortfolioAnalytics)   # Motor de Markowitz
-library(ROI)                  # Framework de optimización
-library(ROI.plugin.quadprog)  # Solver de programación cuadrática
-library(PerformanceAnalytics) # Cálculo de VaR, Sharpe y Beta
+library(shiny)
+library(bslib)
+library(plotly)
+library(PortfolioAnalytics)
+library(ROI)
+library(ROI.plugin.quadprog)
+library(PerformanceAnalytics)
 
 # 2. Cargamos los datos del script 01 y los separamos
 ruta_datos <- "../data/processed/retornos_etfs.rds"
@@ -26,7 +26,7 @@ retornos_rf <- retornos_totales$BIL
 # 3. Inicializamos el portfolio base con esos activos
 portafolio_base <- portfolio.spec(assets = activos_riesgo)
 
-# 4. Introducmos las restricciones del modelo
+# 4. Introducimos las restricciones del modelo
 # Restricción Presupuestaria: Invertir el 100% del capital (Suma de pesos = 1)
 portafolio_base <- add.constraint(portfolio = portafolio_base,
                                   type = "full_investment")
