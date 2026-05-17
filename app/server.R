@@ -8,8 +8,7 @@ server <- function(input, output, session) {
 
   # 1. LÓGICA DE NEGOCIO Y REACCIÓN A EVENTOS
 
-  # 1.1. Calculamos el nivel de riesgo (1-10) según las respuestas al test.
-  # Este bloque se ejecuta cuando el usuario hace clic en el botón "Optimizar Cartera"
+  # 1.1. Calculamos el nivel de riesgo (1-10) según las respuestas del test cuando se haya enviado
   nivel_riesgo <- eventReactive(input$calc, {
     # Sumamos los puntos de las 3 preguntas
     puntos <- sum(as.numeric(input$q1), as.numeric(input$q2), as.numeric(input$q3),
@@ -29,8 +28,9 @@ server <- function(input, output, session) {
 
   # 1.2. Ejecutamos el motor de Markowitz
   pesos_cartera <- reactive({
-    # Calculamos la aversión al riesgo
     riesgo <- nivel_riesgo()
+
+    # Calculamos la aversión al riesgo
     lambda <- ((11 - riesgo) * 10) * 0.5
 
     # Añadimos los objetivos al "portafolio_base" (cargado en global.R)
